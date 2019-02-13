@@ -69,7 +69,7 @@
     "coverage": "istanbul cover _mocha -- --recursive --ui tdd test/node",
     "prepublishOnly": "npm run build",
     "release": "standard-version -i HISTORY.md",
-    "prepare": "npm install && npm run build"
+    "prepare": "npm run build"
   },
   "dependencies": {
     "buffer": "^5.1.0",
