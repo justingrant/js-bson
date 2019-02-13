@@ -68,7 +68,8 @@
     "format": "prettier --print-width 100 --tab-width 2 --single-quote --write 'test/**/*.js' 'lib/**/*.js'",
     "coverage": "istanbul cover _mocha -- --recursive --ui tdd test/node",
     "prepublishOnly": "npm run build",
-    "release": "standard-version -i HISTORY.md"
+    "release": "standard-version -i HISTORY.md",
+    "prepare": "npm install && npm run build"
   },
   "dependencies": {
     "buffer": "^5.1.0",
