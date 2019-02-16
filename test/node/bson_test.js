@@ -2286,8 +2286,31 @@ describe('BSON', function() {
   });
 
   it('should serialize ObjectIds from old bson versions', function() {
-    // create a wrapper simulating the old ObjectID class
-    class ObjectID {
+    // In versions 4.0.0 and 4.0.1, we used _bsontype="ObjectId" which broke
+    // backwards compatibility with mongodb-core and other code. It was reverted
+    // back to "ObjectID" (capital D) in later library versions.
+    // The test below ensures that all three versions of Object ID work OK:
+    // 1. The current version's class
+    // 2. A simulation of the class from library 4.0.0
+    // 3. The class currently in use by mongodb (not tested in browser where mongodb is unavailable)
+
+    // test the old ObjectID from library 1.x because MongoDB drivers still return it
+    // fall back to BSON's ObjectId in browser tests
+    function getOldObjectID() {
+      try {
+        // do a dynamic resolve to avoid exception when running browser tests
+        const file = require.resolve('mongodb'); 
+        return require(file).ObjectID;
+      }
+      catch (e) {
+        return ObjectId; // if mongo is unavailable, e.g. browsers, just re-use BSON's
+      }
+    }
+
+    const OldObjectID = getOldObjectID();
+
+    // create a wrapper simulating the old ObjectId class from v4.0.0
+    class ObjectIdv400 {
       constructor() {
         this.oid = new ObjectId();
       }
@@ -2298,10 +2321,10 @@ describe('BSON', function() {
         return this.oid.toString();
       }
     }
-    Object.defineProperty(ObjectID.prototype, '_bsontype', { value: 'ObjectID' });
+    Object.defineProperty(ObjectIdv400.prototype, '_bsontype', { value: 'ObjectId' });
 
     // Array
-    const array = [new ObjectID(), new ObjectId()];
+    const array = [new ObjectIdv400(), new OldObjectID(), new ObjectId()];
     const deserializedArrayAsMap = BSON.deserialize(BSON.serialize(array));
     const deserializedArray = Object.keys(deserializedArrayAsMap).map(
       x => deserializedArrayAsMap[x]
@@ -2310,7 +2333,8 @@ describe('BSON', function() {
 
     // Map
     const map = new Map();
-    map.set('oldBsonType', new ObjectID());
+    map.set('oldBsonType', new ObjectIdv400());
+    map.set('reallyOldBsonType', new OldObjectID());
     map.set('newBsonType', new ObjectId());
     const deserializedMapAsObject = BSON.deserialize(BSON.serialize(map), { relaxed: false });
     const deserializedMap = new Map(
@@ -2324,9 +2348,9 @@ describe('BSON', function() {
     });
 
     // Object
-    const record = { oldBsonType: new ObjectID(), newBsonType: new ObjectId() };
+    const record = { oldBsonType: new ObjectIdv400(), reallyOldBsonType: new OldObjectID, newBsonType: new ObjectId() };
     const deserializedObject = BSON.deserialize(BSON.serialize(record));
-    expect(deserializedObject).to.have.keys(['oldBsonType', 'newBsonType']);
+    expect(deserializedObject).to.have.keys(['oldBsonType', 'reallyOldBsonType', 'newBsonType']);
     expect(record.oldBsonType.toString()).to.equal(deserializedObject.oldBsonType.toString());
     expect(record.newBsonType.toString()).to.equal(deserializedObject.newBsonType.toString());
   });
