@@ -2363,9 +2363,11 @@ describe('BSON', function() {
     const badBsonType = Object.assign({}, oid, { _bsontype: 'bogus' });
     const badDoc = { bad: badBsonType };
     const badArray = [oid, badDoc];
-    const badMap = new Map(Object.entries(badDoc));
     expect(() => BSON.serialize(badDoc)).to.throw();
     expect(() => BSON.serialize(badArray)).to.throw();
-    expect(() => BSON.serialize(badMap)).to.throw();
+    if (typeof Map !== 'undefined') {
+      const badMap = new Map(Object.entries(badDoc));
+      expect(() => BSON.serialize(badMap)).to.throw();
+    }
   });
 });
