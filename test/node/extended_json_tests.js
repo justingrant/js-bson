@@ -320,12 +320,12 @@ describe('Extended JSON', function() {
     expect(serialized).to.equal('{"a":10}');
   });
 
-  it('4.x should interoperate with 1.x versions of this library', function() {
+  it('should interoperate 4.x with 1.x versions of this library', function() {
     const buffer = Buffer.alloc(64);
     for (var i = 0; i < buffer.length; i++) {
       buffer[i] = i;
     }
-    const [oldBsonObject, newBsonObject] = [OldBSON, BSON].map (bsonModule => {
+    const [oldBsonObject, newBsonObject] = [OldBSON, BSON].map(bsonModule => {
       const bsonTypes = {
         binary: new bsonModule.Binary(buffer),
         code: new bsonModule.Code('function() {}'),
@@ -335,7 +335,7 @@ describe('Extended JSON', function() {
         int32: new bsonModule.Int32(10),
         long: new bsonModule.Long.fromString('1223372036854775807'),
         maxKey: new bsonModule.MaxKey(),
-        // minKey: new bsonModule.MinKey(),  // broken until #310 is fixed in 1.x
+        // minKey: new bsonModule.MinKey(), // broken until #310 is fixed in 1.x
         objectId: bsonModule.ObjectId.createFromHexString('111111111111111111111111'),
         objectID: bsonModule.ObjectID.createFromHexString('111111111111111111111111'),
         bsonRegExp: new bsonModule.BSONRegExp('hello world', 'i'),
@@ -355,7 +355,7 @@ describe('Extended JSON', function() {
       newObjectNewSerializer: BSON.serialize(newBsonObject, serializationOptions),
     };
 
-    const expectedBufferBase64 = "VgEAAAViaW5hcnkAQAAAAAAAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/DWNvZGUADgAAAGZ1bmN0aW9uKCkge30AA2RiUmVmACwAAAACJHJlZgAGAAAAdGVzdHMAECRpZAABAAAAAiRkYgAFAAAAdGVzdAAAE2RlY2ltYWwxMjgA//837RjxE6AdAgAAAABAMAFkb3VibGUAMzMzMzMzJEAQaW50MzIACgAAABJsb25nAP//38RiSvoQf21heEtleQAHb2JqZWN0SWQAERERERERERERERERB29iamVjdElEABEREREREREREREREQtic29uUmVnRXhwAGhlbGxvIHdvcmxkAGkADnN5bWJvbAAHAAAAc3ltYm9sABF0aW1lc3RhbXAAAAAAAAAAAAAA";
+    const expectedBufferBase64 = 'VgEAAAViaW5hcnkAQAAAAAAAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/DWNvZGUADgAAAGZ1bmN0aW9uKCkge30AA2RiUmVmACwAAAACJHJlZgAGAAAAdGVzdHMAECRpZAABAAAAAiRkYgAFAAAAdGVzdAAAE2RlY2ltYWwxMjgA//837RjxE6AdAgAAAABAMAFkb3VibGUAMzMzMzMzJEAQaW50MzIACgAAABJsb25nAP//38RiSvoQf21heEtleQAHb2JqZWN0SWQAERERERERERERERERB29iamVjdElEABEREREREREREREREQtic29uUmVnRXhwAGhlbGxvIHdvcmxkAGkADnN5bWJvbAAHAAAAc3ltYm9sABF0aW1lc3RhbXAAAAAAAAAAAAAA';
     const expectedBuffer = Buffer.from(expectedBufferBase64, 'base64');
 
     // Regardless of which library version created the objects, and which library version
@@ -367,7 +367,7 @@ describe('Extended JSON', function() {
 
     // Finally, validate that the BSON buffer above is correctly deserialized back to EJSON by the new library,
     // regardless of which library version's deserializer is used.  This is useful because the 1.x deserializer
-    // generates 1.x objects, while the 4.x serializer generates 4.x objects. The new-library EJSON serializer should
+    // generates 1.x objects, while the 4.x serializer generates 4.x objects. The 4.x EJSON serializer should
     // be able to handle both.
     const deserializationOptions = { promoteValues: false };
     const deserialized = {
@@ -397,8 +397,53 @@ describe('Extended JSON', function() {
       objectId: { $oid: '111111111111111111111111' },
       objectID: { $oid: '111111111111111111111111' },
       bsonRegExp: { $regularExpression: { pattern: 'hello world', options: 'i' } },
-      // symbol: { $symbol: 'symbol' },  // removed because this type is deprecated. See comment above. 
+      // symbol: { $symbol: 'symbol' },  // removed because this type is deprecated. See comment above.
       timestamp: { $timestamp: { t: 0, i: 0 } }
+    };
+    const ejsonSerializationOptions = { relaxed: false };
+    const resultOld = EJSON.serialize(deserialized.usingOldDeserializer, ejsonSerializationOptions);
+    expect(resultOld).to.deep.equal(ejsonExpected);
+    const resultNew = EJSON.serialize(deserialized.usingNewDeserializer, ejsonSerializationOptions);
+    expect(resultNew).to.deep.equal(ejsonExpected);
+  });
+
+  // Must special-case the test for MinKey, because of #310.  When #310 is fixed and is picked up
+  // by mongodb-core, then remove this test case and uncomment the MinKey checks in the test case above
+  it('should interop with MinKey 1.x and 4.x, except the case that #310 breaks', function() {
+
+    const serializationOptions = {};
+    const deserializationOptions = { promoteValues: false };
+
+    // when #310 is fixed and the fix makes it into mongodb-core.
+    const [oldMinKey, newMinKey] = [OldBSON, BSON].map(bsonModule => {
+      const bsonTypes = {
+        minKey: new bsonModule.MinKey()
+      };
+      return bsonTypes;
+    });
+
+    const expectedBufferBase64MinKey = 'DQAAAP9taW5LZXkAAA==';
+    const expectedBufferMinKey = Buffer.from(expectedBufferBase64MinKey, 'base64');
+
+    const bsonBuffersMinKey = {
+      oldObjectOldSerializer: OldBSON.serialize(oldMinKey, serializationOptions),
+      oldObjectNewSerializer: BSON.serialize(oldMinKey, serializationOptions),
+      newObjectOldSerializer: OldBSON.serialize(newMinKey, serializationOptions),
+      newObjectNewSerializer: BSON.serialize(newMinKey, serializationOptions),
+    };
+
+    expect(expectedBufferMinKey).to.deep.equal(bsonBuffersMinKey.newObjectNewSerializer);
+    // expect(expectedBufferMinKey).to.deep.equal(bsonBuffersMinKey.newObjectOldSerializer);  // this is the case that's broken by #310
+    expect(expectedBufferMinKey).to.deep.equal(bsonBuffersMinKey.oldObjectNewSerializer);
+    expect(expectedBufferMinKey).to.deep.equal(bsonBuffersMinKey.oldObjectOldSerializer);
+
+    const ejsonExpected = {
+      minKey: { $minKey: 1 }, 
+    };
+
+    const deserialized = {
+      usingOldDeserializer: OldBSON.deserialize(expectedBufferMinKey, deserializationOptions),
+      usingNewDeserializer: BSON.deserialize(expectedBufferMinKey, deserializationOptions),
     };
     const ejsonSerializationOptions = { relaxed: false };
     const resultOld = EJSON.serialize(deserialized.usingOldDeserializer, ejsonSerializationOptions);
