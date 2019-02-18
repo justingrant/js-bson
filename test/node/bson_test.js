@@ -2294,20 +2294,23 @@ describe('BSON', function() {
     // 2. A simulation of the class from library 4.0.0
     // 3. The class currently in use by mongodb (not tested in browser where mongodb is unavailable)
 
-    // test the old ObjectID from library 1.x because MongoDB drivers still return it
-    // fall back to BSON's ObjectId in browser tests
-    function getOldObjectID() {
+    // test the old ObjectID class (in mongodb-core 3.1) because MongoDB drivers still return it
+    function getOldBSON() {
       try {
         // do a dynamic resolve to avoid exception when running browser tests
-        const file = require.resolve('mongodb'); 
-        return require(file).ObjectID;
-      }
-      catch (e) {
-        return ObjectId; // if mongo is unavailable, e.g. browsers, just re-use BSON's
+        const file = require.resolve('mongodb-core');
+        const oldModule = require(file).BSON;
+        const funcs = new oldModule.BSON();
+        oldModule.serialize = funcs.serialize;
+        oldModule.deserialize = funcs.deserialize;
+        return oldModule;
+      } catch (e) {
+        return BSON; // if mongo is unavailable, e.g. browser tests, just re-use new BSON
       }
     }
 
-    const OldObjectID = getOldObjectID();
+    const OldBSON = getOldBSON();
+    const OldObjectID = OldBSON === BSON ? BSON.ObjectId : OldBSON.ObjectID;
 
     // create a wrapper simulating the old ObjectId class from v4.0.0
     class ObjectIdv400 {
