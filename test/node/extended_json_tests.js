@@ -451,4 +451,15 @@ describe('Extended JSON', function() {
     const resultNew = EJSON.serialize(deserialized.usingNewDeserializer, ejsonSerializationOptions);
     expect(resultNew).to.deep.equal(ejsonExpected);
   });
+
+  it('should throw if invalid BSON types are input to EJSON serializer', function() {
+    const oid = new ObjectId('111111111111111111111111');
+    const badBsonType = Object.assign({}, oid, { _bsontype: 'bogus' });
+    const badDoc = { bad: badBsonType };
+    const badArray = [oid, badDoc];
+    // const badMap = new Map(Object.entries(badDoc));
+    expect(() => EJSON.serialize(badArray)).to.throw();
+    // expect(() => EJSON.serialize(badMap)).to.throw();  // EJSON serializer doesn't support ES6 Maps yet
+    expect(() => EJSON.serialize(badDoc)).to.throw();
+  });
 });

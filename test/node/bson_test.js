@@ -2357,4 +2357,15 @@ describe('BSON', function() {
     expect(record.oldBsonType.toString()).to.equal(deserializedObject.oldBsonType.toString());
     expect(record.newBsonType.toString()).to.equal(deserializedObject.newBsonType.toString());
   });
+
+  it('should throw if invalid BSON types are input to BSON serializer', function() {
+    const oid = new ObjectId('111111111111111111111111');
+    const badBsonType = Object.assign({}, oid, { _bsontype: 'bogus' });
+    const badDoc = { bad: badBsonType };
+    const badArray = [oid, badDoc];
+    const badMap = new Map(Object.entries(badDoc));
+    expect(() => BSON.serialize(badDoc)).to.throw();
+    expect(() => BSON.serialize(badArray)).to.throw();
+    expect(() => BSON.serialize(badMap)).to.throw();
+  });
 });
