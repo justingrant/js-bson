@@ -457,11 +457,9 @@ describe('Extended JSON', function() {
     const badBsonType = Object.assign({}, oid, { _bsontype: 'bogus' });
     const badDoc = { bad: badBsonType };
     const badArray = [oid, badDoc];
-    expect(() => EJSON.serialize(badArray)).to.throw();
+    // const badMap = new Map([['a', badBsonType], ['b', badDoc], ['c', badArray]]);
     expect(() => EJSON.serialize(badDoc)).to.throw();
-    // if (typeof Map !== 'undefined') {  // uncomment when the EJSON serializer supports ES6 Maps
-    //   const badMap = new Map(Object.entries(badDoc));
-    // expect(() => EJSON.serialize(badMap)).to.throw();
-    // }
+    expect(() => EJSON.serialize(badArray)).to.throw();
+    // expect(() => EJSON.serialize(badMap)).to.throw(); // uncomment when EJSON supports ES6 Map
   });
 });
