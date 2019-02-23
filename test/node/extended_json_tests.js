@@ -25,7 +25,7 @@ const Timestamp = BSON.Timestamp;
 function getOldBSON() {
   try {
     // do a dynamic resolve to avoid exception when running browser tests
-    const file = require.resolve('mongodb-core');
+    const file = require.resolve('./bson-1x');
     const oldModule = require(file).BSON;
     const funcs = new oldModule.BSON();
     oldModule.serialize = funcs.serialize;
